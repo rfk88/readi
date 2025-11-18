@@ -1,0 +1,25 @@
+{
+  "name": "readi",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Readi meeting intelligence platform",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:api": "npm run dev --workspace apps/backend",
+    "dev:web": "npm run dev --workspace apps/web",
+    "lint": "npm run lint --workspaces",
+    "format": "prettier --write .",
+    "clean": "git clean -fdx"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}
