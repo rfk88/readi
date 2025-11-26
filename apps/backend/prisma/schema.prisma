@@ -1,0 +1,203 @@
+// Prisma schema for Readi backend
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  googleId      String?   @unique @map("google_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  tokens        UserToken[]
+  profile       Profile?
+  calendarEvents CalendarEvent[]
+  emailThreads  EmailThread[]
+  talkingPoints TalkingPoint[]
+  
+  @@map("users")
+}
+
+model UserToken {
+  id           String   @id @default(cuid())
+  userId       String   @unique @map("user_id")
+  accessToken  String   @map("access_token")
+  refreshToken String?  @map("refresh_token")
+  expiresAt    DateTime @map("expires_at")
+  scope        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_tokens")
+}
+
+model Profile {
+  id            String   @id @default(cuid())
+  userId        String   @unique @map("user_id")
+  role          String   // "job_seeker" or "sales"
+  displayName   String?  @map("display_name")
+  timeZone      String?  @map("time_zone")
+  reminderMinutes Int    @default(30) @map("reminder_minutes")
+  resumeUrl     String?  @map("resume_url")
+  jobRole       String?  @map("job_role")
+  targetCompanies String[] @default([]) @map("target_companies")
+  companyName   String?  @map("company_name")
+  productDescription String? @map("product_description")
+  salesPainPoints String? @map("sales_pain_points")
+  salesTargets   String? @map("sales_targets")
+  preferredMeetingTypes String[] @default([]) @map("preferred_meeting_types")
+  notificationPreference String  @default("push") @map("notification_preference")
+  notes         String?
+  profileData   Json?    @map("profile_data") // Additional flexible data
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("profiles")
+}
+
+model CalendarEvent {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  googleEventId   String   @map("google_event_id")
+  title           String
+  description     String?
+  startTime       DateTime @map("start_time")
+  endTime         DateTime @map("end_time")
+  location        String?
+  meetingLink     String?  @map("meeting_link")
+  status          String   @default("confirmed") // confirmed, cancelled, etc.
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  participants MeetingParticipant[]
+  talkingPoints TalkingPoint[]
+  emailLinks MeetingEmailLink[]
+  
+  @@unique([userId, googleEventId])
+  @@index([userId, startTime])
+  @@map("calendar_events")
+}
+
+model MeetingParticipant {
+  id              String   @id @default(cuid())
+  eventId         String   @map("event_id")
+  email           String
+  name            String?
+  isOrganizer     Boolean  @default(false) @map("is_organizer")
+  responseStatus  String?  @map("response_status") // accepted, declined, tentative, needsAction
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  event CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  @@unique([eventId, email])
+  @@index([email])
+  @@map("meeting_participants")
+}
+
+model EmailThread {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  gmailThreadId     String   @map("gmail_thread_id")
+  subject           String
+  participantEmails String[] @map("participant_emails")
+  lastMessageDate   DateTime @map("last_message_date")
+  messageCount      Int      @default(0) @map("message_count")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages EmailMessage[]
+  meetingLinks MeetingEmailLink[]
+  
+  @@unique([userId, gmailThreadId])
+  @@index([userId, participantEmails])
+  @@map("email_threads")
+}
+
+model EmailMessage {
+  id              String   @id @default(cuid())
+  threadId        String   @map("thread_id")
+  gmailMessageId  String   @map("gmail_message_id")
+  fromEmail       String   @map("from_email")
+  toEmails        String[] @map("to_emails")
+  subject         String
+  bodyText        String?  @map("body_text")
+  bodyHtml        String?  @map("body_html")
+  date            DateTime
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  thread EmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  
+  @@unique([gmailMessageId])
+  @@map("email_messages")
+}
+
+model MeetingEmailLink {
+  id        String   @id @default(cuid())
+  meetingId String   @map("meeting_id")
+  threadId  String   @map("thread_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  meeting CalendarEvent @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  thread  EmailThread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  
+  @@unique([meetingId, threadId])
+  @@map("meeting_email_links")
+}
+
+model TalkingPoint {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  meetingId       String   @map("meeting_id")
+  points          Json     // Array of talking points with context
+  citations       Json?    // Sources for each point
+  aiModel         String   @map("ai_model")
+  generatedAt     DateTime @default(now()) @map("generated_at")
+  feedback        String?  // thumbs up/down from user
+  
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meeting CalendarEvent @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  
+  @@unique([meetingId])
+  @@map("talking_points")
+}
+
+model CompanyResearch {
+  id           String   @id @default(cuid())
+  companyName  String   @unique @map("company_name")
+  researchData Json     @map("research_data") // Flexible JSON with company info
+  cachedAt     DateTime @default(now()) @map("cached_at")
+  expiresAt    DateTime @map("expires_at")
+  
+  @@index([companyName])
+  @@map("company_research")
+}
+
+model Contact {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String?
+  company     String?
+  linkedinUrl String?  @map("linkedin_url")
+  notes       String?
+  metadata    Json?    // Additional flexible data
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  @@index([email])
+  @@map("contacts")
+}
+

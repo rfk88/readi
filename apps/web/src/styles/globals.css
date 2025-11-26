@@ -1,0 +1,75 @@
+@import '@readi/design-tokens/css';
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: var(--color-background);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Utility classes using design tokens */
+.bg-background {
+  background-color: var(--color-background);
+}
+
+.bg-background-secondary {
+  background-color: var(--color-background-secondary);
+}
+
+.text-primary {
+  color: var(--color-primary);
+}
+
+.text-text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-4xl {
+  font-size: var(--font-size-xxxl);
+}
+
+.text-lg {
+  font-size: var(--font-size-lg);
+}
+
+.font-bold {
+  font-weight: var(--font-weight-bold);
+}
+
+.mb-4 {
+  margin-bottom: var(--spacing-md);
+}
+
